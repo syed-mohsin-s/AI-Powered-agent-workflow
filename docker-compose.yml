@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sentinel_postgres
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel_pass
+      POSTGRES_DB: sentinel_ai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d sentinel_ai -U sentinel"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  sentinel:
+    build: .
+    container_name: sentinel_app
+    ports:
+      - "8000:8000"
+    environment:
+      # Hardcode DB URL since docker networks resolve service names (db)
+      - DATABASE_URL=postgresql+asyncpg://sentinel:sentinel_pass@db:5432/sentinel_ai
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app  # Optional: enables hot-reloading if started with --reload
+
+volumes:
+  postgres_data:

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sentinel-AI Enterprise Workflow Monitoring Dashboard">
+    <title>Sentinel-AI | Enterprise Workflow Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/dashboard/css/dashboard.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header" id="main-header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                        <path d="M14 2L26 8v12l-12 6L2 20V8l12-6z" stroke="url(#grad1)" stroke-width="2" fill="none"/>
+                        <path d="M14 8l6 3v6l-6 3-6-3v-6l6-3z" fill="url(#grad1)" opacity="0.3"/>
+                        <circle cx="14" cy="14" r="3" fill="url(#grad1)"/>
+                        <defs><linearGradient id="grad1" x1="0" y1="0" x2="28" y2="28">
+                            <stop offset="0%" stop-color="#3b82f6"/>
+                            <stop offset="100%" stop-color="#8b5cf6"/>
+                        </linearGradient></defs>
+                    </svg>
+                </div>
+                <h1>Sentinel<span class="accent">-AI</span></h1>
+            </div>
+            <span class="badge badge-live" id="status-badge">● LIVE</span>
+        </div>
+        <div class="header-right">
+            <div class="header-stat" id="uptime-stat">
+                <span class="stat-label">Uptime</span>
+                <span class="stat-value" id="uptime-value">00:00:00</span>
+            </div>
+            <div class="header-stat">
+                <span class="stat-label">WebSocket</span>
+                <span class="stat-value" id="ws-status">Connecting...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <!-- KPI Cards Row -->
+        <section class="kpi-row" id="kpi-section">
+            <div class="kpi-card" id="kpi-tcr">
+                <div class="kpi-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+                <div class="kpi-content">
+                    <span class="kpi-value" data-metric="task_completion_rate">100.0</span><span class="kpi-unit">%</span>
+                    <span class="kpi-label">Task Completion Rate</span>
+                </div>
+                <div class="kpi-trend up">↑</div>
+            </div>
+            <div class="kpi-card" id="kpi-autonomy">
+                <div class="kpi-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="kpi-content">
+                    <span class="kpi-value" data-metric="autonomy_score">100.0</span><span class="kpi-unit">%</span>
+                    <span class="kpi-label">Autonomy Score</span>
+                </div>
+                <div class="kpi-trend up">↑</div>
+            </div>
+            <div class="kpi-card" id="kpi-sla">
+                <div class="kpi-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+                <div class="kpi-content">
+                    <span class="kpi-value" data-metric="sla_compliance_rate">100.0</span><span class="kpi-unit">%</span>
+                    <span class="kpi-label">SLA Compliance</span>
+                </div>
+                <div class="kpi-trend up">↑</div>
+            </div>
+            <div class="kpi-card" id="kpi-mttr">
+                <div class="kpi-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.49 9A9 9 0 005.64 5.64L4 4m16 16l-1.64-1.64A9 9 0 0115 20.49" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+                <div class="kpi-content">
+                    <span class="kpi-value" data-metric="mttr_a_seconds">0.0</span><span class="kpi-unit">s</span>
+                    <span class="kpi-label">MTTR-A</span>
+                </div>
+                <div class="kpi-trend neutral">—</div>
+            </div>
+            <div class="kpi-card" id="kpi-audit">
+                <div class="kpi-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+                <div class="kpi-content">
+                    <span class="kpi-value" data-metric="audit_completeness">100.0</span><span class="kpi-unit">%</span>
+                    <span class="kpi-label">Audit Completeness</span>
+                </div>
+                <div class="kpi-trend up">↑</div>
+            </div>
+        </section>
+
+        <!-- Main Grid -->
+        <div class="grid-layout">
+            <!-- Workflow Panel -->
+            <section class="panel workflows-panel" id="workflows-panel">
+                <div class="panel-header">
+                    <h2>Active Workflows</h2>
+                    <button class="btn btn-primary btn-sm" id="submit-workflow-btn" onclick="showSubmitModal()">
+                        + New Workflow
+                    </button>
+                </div>
+                <div class="panel-body" id="workflows-list">
+                    <div class="empty-state">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" stroke-width="1.5"/></svg>
+                        <p>No active workflows</p>
+                        <span>Submit a workflow to get started</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DAG Visualization -->
+            <section class="panel dag-panel" id="dag-panel">
+                <div class="panel-header">
+                    <h2>Task DAG</h2>
+                    <span class="panel-hint" id="dag-hint">Select a workflow to view its DAG</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="dag-canvas" width="600" height="350"></canvas>
+                </div>
+            </section>
+
+            <!-- Agent Health Grid -->
+            <section class="panel agents-panel" id="agents-panel">
+                <div class="panel-header">
+                    <h2>Agent Health</h2>
+                </div>
+                <div class="panel-body agent-grid" id="agent-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+
+            <!-- Audit Log -->
+            <section class="panel audit-panel" id="audit-panel">
+                <div class="panel-header">
+                    <h2>Audit Trail</h2>
+                    <button class="btn btn-outline btn-sm" id="verify-chain-btn" onclick="verifyChain()">
+                        🔒 Verify Chain
+                    </button>
+                </div>
+                <div class="panel-body audit-log" id="audit-log">
+                    <div class="empty-state small">
+                        <p>Waiting for audit records...</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Submit Workflow Modal -->
+    <div class="modal-overlay" id="submit-modal" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Submit Workflow</h2>
+                <button class="modal-close" onclick="hideSubmitModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="wf-type">Workflow Type</label>
+                    <select id="wf-type">
+                        <option value="p2p">Procure-to-Payment (P2P)</option>
+                        <option value="meeting_intelligence">Meeting Intelligence</option>
+                        <option value="onboarding">Employee Onboarding</option>
+                        <option value="contract_clm">Contract Lifecycle</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="wf-priority">Priority</label>
+                    <input type="range" id="wf-priority" min="1" max="10" value="5">
+                    <span id="priority-display">5</span>
+                </div>
+                <div class="form-group">
+                    <label for="wf-data">Input Data (JSON)</label>
+                    <textarea id="wf-data" rows="8" placeholder='{"vendor_name": "Acme Corp", "total_amount": 15000}'></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="hideSubmitModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitWorkflow()">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/dashboard/js/websocket.js"></script>
+    <script src="/dashboard/js/dag-visualizer.js"></script>
+    <script src="/dashboard/js/metrics.js"></script>
+    <script src="/dashboard/js/app.js"></script>
+</body>
+</html>

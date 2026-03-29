@@ -1,0 +1,183 @@
+{
+  "id": "8e8afc17-9157-435d-98f3-f106a672201d",
+  "workflow_type": "meeting_intelligence",
+  "status": "completed",
+  "priority": 5,
+  "input_data": {
+    "content": "Bob from engineering noted that the backend latency issues are caused by missing indexes on the users table. Alice will patch this by Friday. Let us circle back next week.",
+    "type": "meeting_transcript"
+  },
+  "output_data": {
+    "8e8afc17-9157-435d-98f3-f106a672201d_extract": {
+      "extracted": {
+        "decisions": [],
+        "action_items": [],
+        "attendees": [],
+        "key_topics": []
+      },
+      "method": "rule_based",
+      "input_type": "meeting_transcript"
+    },
+    "8e8afc17-9157-435d-98f3-f106a672201d_validate": {
+      "approved": true,
+      "results": [],
+      "failed_rules": [],
+      "passed_rules": []
+    },
+    "8e8afc17-9157-435d-98f3-f106a672201d_decide": {
+      "decision": "approve",
+      "merged_data": {
+        "decisions": [],
+        "action_items": [],
+        "attendees": [],
+        "key_topics": [],
+        "approved": true,
+        "results": [],
+        "failed_rules": [],
+        "passed_rules": []
+      },
+      "sources": [
+        "8e8afc17-9157-435d-98f3-f106a672201d_extract",
+        "8e8afc17-9157-435d-98f3-f106a672201d_validate"
+      ],
+      "synthesis_method": "confidence_weighted"
+    },
+    "8e8afc17-9157-435d-98f3-f106a672201d_create_tickets": {
+      "execution_result": {
+        "status": "created",
+        "key": "SENT-541",
+        "id": "3e9185ac-480a-41e2-9934-d331e788dc6b",
+        "simulated": true
+      },
+      "system": "jira",
+      "action": "create_issue"
+    },
+    "8e8afc17-9157-435d-98f3-f106a672201d_notify": {
+      "execution_result": {
+        "status": "sent",
+        "email_id": "2e18a9bb-9b9a-44f4-b084-54b80dff8c4c",
+        "simulated": true
+      },
+      "system": "email",
+      "action": "send"
+    },
+    "8e8afc17-9157-435d-98f3-f106a672201d_verify": {
+      "verified": false,
+      "checks": [
+        {
+          "check": "extraction_8e8afc17-9157-435d-98f3-f106a672201d_extract",
+          "passed": false,
+          "detail": "Extracted 0 non-empty fields"
+        },
+        {
+          "check": "output_8e8afc17-9157-435d-98f3-f106a672201d_validate",
+          "passed": true,
+          "detail": "Output present with 4 fields"
+        },
+        {
+          "check": "output_8e8afc17-9157-435d-98f3-f106a672201d_decide",
+          "passed": true,
+          "detail": "Output present with 4 fields"
+        },
+        {
+          "check": "execution_8e8afc17-9157-435d-98f3-f106a672201d_create_tickets",
+          "passed": false,
+          "detail": "Execution status: created"
+        },
+        {
+          "check": "execution_8e8afc17-9157-435d-98f3-f106a672201d_notify",
+          "passed": false,
+          "detail": "Execution status: sent"
+        },
+        {
+          "check": "compliance_evaluated",
+          "passed": true,
+          "detail": "Compliance was evaluated"
+        }
+      ],
+      "issues": [],
+      "total_checks": 6,
+      "passed_checks": 3
+    }
+  },
+  "error_message": null,
+  "sla_deadline": "2026-03-29T15:09:57.280214+00:00",
+  "sla_met": true,
+  "created_at": "2026-03-29T14:39:57.279759+00:00",
+  "started_at": "2026-03-29T14:39:57.281667+00:00",
+  "completed_at": "2026-03-29T14:39:57.485985+00:00",
+  "tasks": [
+    {
+      "id": "8e8afc17-9157-435d-98f3-f106a672201d_extract",
+      "task_name": "Extract Decisions & Tasks",
+      "agent_type": "intake",
+      "status": "success",
+      "confidence_score": 0.75,
+      "attempt_count": 1,
+      "dag_depth": 0,
+      "error_message": null,
+      "started_at": "2026-03-29T14:39:57.282007+00:00",
+      "completed_at": "2026-03-29T14:39:57.282466+00:00"
+    },
+    {
+      "id": "8e8afc17-9157-435d-98f3-f106a672201d_validate",
+      "task_name": "Validate Extracted Data",
+      "agent_type": "policy",
+      "status": "success",
+      "confidence_score": 0.0,
+      "attempt_count": 1,
+      "dag_depth": 1,
+      "error_message": null,
+      "started_at": "2026-03-29T14:39:57.282693+00:00",
+      "completed_at": "2026-03-29T14:39:57.282924+00:00"
+    },
+    {
+      "id": "8e8afc17-9157-435d-98f3-f106a672201d_decide",
+      "task_name": "Assign Owners & Priorities",
+      "agent_type": "decision",
+      "status": "success",
+      "confidence_score": 0.88,
+      "attempt_count": 1,
+      "dag_depth": 2,
+      "error_message": null,
+      "started_at": "2026-03-29T14:39:57.283100+00:00",
+      "completed_at": "2026-03-29T14:39:57.283422+00:00"
+    },
+    {
+      "id": "8e8afc17-9157-435d-98f3-f106a672201d_create_tickets",
+      "task_name": "Create Jira Tickets",
+      "agent_type": "execution",
+      "status": "success",
+      "confidence_score": 0.9,
+      "attempt_count": 1,
+      "dag_depth": 3,
+      "error_message": null,
+      "started_at": "2026-03-29T14:39:57.283603+00:00",
+      "completed_at": "2026-03-29T14:39:57.283852+00:00"
+    },
+    {
+      "id": "8e8afc17-9157-435d-98f3-f106a672201d_notify",
+      "task_name": "Send Notifications",
+      "agent_type": "execution",
+      "status": "success",
+      "confidence_score": 0.9,
+      "attempt_count": 1,
+      "dag_depth": 4,
+      "error_message": null,
+      "started_at": "2026-03-29T14:39:57.284015+00:00",
+      "completed_at": "2026-03-29T14:39:57.485224+00:00"
+    },
+    {
+      "id": "8e8afc17-9157-435d-98f3-f106a672201d_verify",
+      "task_name": "Verify & Monitor",
+      "agent_type": "verification",
+      "status": "success",
+      "confidence_score": 0.5,
+      "attempt_count": 1,
+      "dag_depth": 5,
+      "error_message": null,
+      "started_at": "2026-03-29T14:39:57.485533+00:00",
+      "completed_at": "2026-03-29T14:39:57.485858+00:00"
+    }
+  ]
+}

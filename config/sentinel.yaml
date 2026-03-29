@@ -1,0 +1,135 @@
+# ============================================================
+# Sentinel-AI Configuration
+# Enterprise-Grade Agentic Workflow Engine
+# ============================================================
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  debug: true
+  workers: 1
+
+database:
+  url: "postgresql+asyncpg://sentinel:sentinel_pass@localhost:5432/sentinel_ai"
+  echo: false
+  pool_size: 10
+  max_overflow: 20
+
+llm:
+  # Default provider: "openai" or "anthropic"
+  default_provider: "openai"
+  
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+    model: "gpt-4o"
+    temperature: 0.2
+    max_tokens: 4096
+    
+  anthropic:
+    api_key: "${ANTHROPIC_API_KEY}"
+    model: "claude-sonnet-4-20250514"
+    temperature: 0.2
+    max_tokens: 4096
+
+agents:
+  max_parallel_tasks: 10
+  retry_base_seconds: 1.0
+  retry_max_backoff_seconds: 30.0
+  retry_jitter_ratio: 0.2
+
+  orchestrator:
+    max_parallel_tasks: 10
+    planning_timeout_seconds: 30
+    
+  supervisor:
+    health_check_interval_seconds: 5
+    max_retries: 3
+    circuit_breaker_threshold: 5
+    circuit_breaker_reset_seconds: 60
+    
+  intake:
+    extraction_confidence_threshold: 0.7
+    supported_formats: ["pdf", "email", "json", "transcript", "csv"]
+    
+  policy:
+    strict_mode: true
+    approval_threshold: 0.85
+    compliance_rules_path: "config/compliance_rules.yaml"
+    
+  decision:
+    conflict_resolution_strategy: "confidence_weighted"
+    min_consensus_score: 0.6
+    
+  execution:
+    timeout_seconds: 30
+    validate_schema: true
+    dry_run: false
+    
+  verification:
+    retry_on_mismatch: true
+    max_verification_attempts: 3
+    
+  monitoring:
+    sla_check_interval_seconds: 10
+    stall_detection_threshold_seconds: 300
+    
+  recovery:
+    max_recovery_attempts: 3
+    reflection_enabled: true
+    escalation_confidence_threshold: 0.3
+
+workflow_defaults:
+  p2p:
+    sla_minutes: 60
+    approval_required_above: 10000
+    currency: "USD"
+    
+  onboarding:
+    sla_minutes: 1440  # 24 hours
+    departments: ["engineering", "sales", "hr", "finance"]
+    
+  meeting_intelligence:
+    sla_minutes: 30
+    auto_create_tickets: true
+    ticket_system: "atlassian_mcp"
+    
+  contract_clm:
+    sla_minutes: 4320  # 3 days
+    review_stages: ["legal", "finance", "executive"]
+
+integrations:
+  atlassian_mcp:
+    command: "npx"
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-atlassian"
+    
+  erp:
+    type: "mock"
+    simulate_delay_ms: 500
+    
+  email:
+    type: "mock"
+    simulate_delay_ms: 200
+    
+  servicenow:
+    type: "mock"
+    simulate_delay_ms: 400
+
+audit:
+  hash_algorithm: "sha256"
+  chain_verification_interval_seconds: 300
+  retention_days: 365
+  export_format: "json"
+
+metrics:
+  collection_interval_seconds: 5
+  rolling_window_minutes: 60
+  export_enabled: true
+
+logging:
+  level: "INFO"
+  format: "json"
+  file: "logs/sentinel.log"
+  max_size_mb: 100
+  backup_count: 5
