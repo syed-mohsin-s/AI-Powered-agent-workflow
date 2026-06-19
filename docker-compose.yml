@@ -22,7 +22,7 @@ services:
     build: .
     container_name: sentinel_app
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       # Hardcode DB URL since docker networks resolve service names (db)
       - DATABASE_URL=postgresql+asyncpg://sentinel:sentinel_pass@db:5432/sentinel_ai

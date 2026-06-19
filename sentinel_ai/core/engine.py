@@ -214,6 +214,9 @@ class WorkflowEngine:
                         break
 
             # Determine final state
+            if workflow.status == WorkflowStatus.PAUSED:
+                return
+
             if workflow.status == WorkflowStatus.RUNNING:
                 if workflow.is_complete():
                     workflow.status = transition_workflow(
@@ -293,7 +296,8 @@ class WorkflowEngine:
             )
 
         finally:
-            self._scheduler.unregister_workflow(workflow_id)
+            if workflow.status in (WorkflowStatus.COMPLETED, WorkflowStatus.FAILED):
+                self._scheduler.unregister_workflow(workflow_id)
 
     async def _execute_group(
         self, workflow: WorkflowExecution, group: ExecutionGroup

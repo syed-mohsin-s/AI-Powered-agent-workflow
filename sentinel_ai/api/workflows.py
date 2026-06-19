@@ -6,7 +6,10 @@ REST endpoints for workflow submission, status, and lifecycle management.
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Security
+from fastapi.security import APIKeyHeader
+
+from sentinel_ai.config import get_config
 
 from sentinel_ai.core.engine import get_engine
 from sentinel_ai.core.scheduler import get_scheduler
@@ -16,6 +19,15 @@ from sentinel_ai.utils.logger import get_logger
 
 logger = get_logger("api.workflows")
 router = APIRouter(prefix="/api/workflows", tags=["Workflows"])
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+def verify_api_key(api_key: str = Security(api_key_header)):
+    config = get_config()
+    expected_key = config.server.api_key
+    if expected_key and api_key != expected_key:
+        raise HTTPException(status_code=401, detail="Invalid API Key")
+    return api_key
 
 # Workflow factory mapping
 WORKFLOW_FACTORIES = {}
@@ -78,7 +90,7 @@ def _workflow_to_response(wf) -> WorkflowResponse:
 
 from sentinel_ai.workflows.goal_workflow import create_goal_workflow
 
-@router.post("/goal", response_model=dict)
+@router.post("/goal", response_model=dict, dependencies=[Depends(verify_api_key)])
 async def submit_goal_workflow(submission: GoalSubmission):
     """Submit a new goal-driven workflow for execution."""
     workflow, tasks = create_goal_workflow(
@@ -100,7 +112,7 @@ async def submit_goal_workflow(submission: GoalSubmission):
     }
 
 
-@router.post("/", response_model=dict)
+@router.post("/", response_model=dict, dependencies=[Depends(verify_api_key)])
 async def submit_workflow(submission: WorkflowSubmission):
     """Submit a new workflow for execution."""
     if not WORKFLOW_FACTORIES:
@@ -152,7 +164,7 @@ async def get_workflow(workflow_id: str):
     return _workflow_to_response(workflow)
 
 
-@router.post("/{workflow_id}/pause")
+@router.post("/{workflow_id}/pause", dependencies=[Depends(verify_api_key)])
 async def pause_workflow(workflow_id: str):
     """Pause a running workflow."""
     engine = get_engine()
@@ -164,7 +176,7 @@ async def pause_workflow(workflow_id: str):
     return {"status": "paused", "workflow_id": workflow_id}
 
 
-@router.post("/{workflow_id}/resume")
+@router.post("/{workflow_id}/resume", dependencies=[Depends(verify_api_key)])
 async def resume_workflow(workflow_id: str):
     """Resume a paused workflow."""
     engine = get_engine()
@@ -176,7 +188,7 @@ async def resume_workflow(workflow_id: str):
     return {"status": "resumed", "workflow_id": workflow_id}
 
 
-@router.delete("/{workflow_id}")
+@router.delete("/{workflow_id}", dependencies=[Depends(verify_api_key)])
 async def cancel_workflow(workflow_id: str):
     """Cancel a workflow."""
     engine = get_engine()

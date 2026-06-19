@@ -19,6 +19,7 @@ logger = get_logger("api.websocket")
 
 # Connected WebSocket clients
 _ws_clients: set[WebSocket] = set()
+_callback_registered: bool = False
 
 
 async def broadcast_event(event_data: dict):
@@ -45,9 +46,12 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     _ws_clients.add(websocket)
 
-    # Register broadcast callback with event bus
-    event_bus = get_event_bus()
-    event_bus.register_ws_callback(broadcast_event)
+    global _callback_registered
+    if not _callback_registered:
+        # Register broadcast callback with event bus ONCE
+        event_bus = get_event_bus()
+        event_bus.register_ws_callback(broadcast_event)
+        _callback_registered = True
 
     logger.info(f"WebSocket client connected (total: {len(_ws_clients)})")
 

@@ -126,6 +126,12 @@ def create_audit_record(
 
     logger.audit_entry(record.decision_id, agent, decision, confidence)
 
+    try:
+        from sentinel_ai.api.audit import add_audit_record
+        add_audit_record(record)
+    except ImportError:
+        pass  # Graceful fallback if api layer not loaded
+
     return record
 
 

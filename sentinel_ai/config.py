@@ -21,6 +21,7 @@ class ServerConfig(BaseModel):
     port: int = 8000
     debug: bool = True
     workers: int = 1
+    api_key: str = ""
 
 
 class DatabaseConfig(BaseModel):
