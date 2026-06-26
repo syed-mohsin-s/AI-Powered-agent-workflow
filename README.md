@@ -1,6 +1,5 @@
-# 🛡️ Sentinel-AI
+# Enterprise-Grade Agentic AI Workflow
 
-**Enterprise-Grade Agentic AI Workflow Engine**
 
 A production-ready, multi-agent, event-driven, self-healing workflow orchestration system that autonomously executes complex enterprise workflows with full audit compliance, predictive SLA monitoring, and hierarchical failure recovery.
 
