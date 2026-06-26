@@ -94,8 +94,9 @@ class ToolCapability:
             score = 0.0
             for qt in query_tokens:
                 for st in searchable_tokens:
-                    if qt in st or st in qt:
-                        score += 0.3
+                    if len(st) >= 3 and len(qt) >= 3:
+                        if qt in st or st in qt:
+                            score += 0.3
             return min(score / len(query_tokens), 0.6)
 
         return len(matched) / len(query_tokens)
@@ -299,26 +300,31 @@ class ToolRegistry:
         self,
         candidates: list[ToolCapability],
         context: Optional[dict] = None,
+        query: Optional[str] = None,
     ) -> list[ToolCapability]:
         """
         Rank candidate tools by composite score.
 
         Scoring factors:
-        - Reliability score (weight: 0.4)
-        - Latency (lower is better, weight: 0.2)
-        - Cost tier (lower is better, weight: 0.2)
-        - Recency of use (weight: 0.2)
+        - Relevance score (weight: 0.5)
+        - Reliability score (weight: 0.2)
+        - Latency (lower is better, weight: 0.1)
+        - Cost tier (lower is better, weight: 0.1)
+        - Recency of use (weight: 0.1)
         """
         cost_scores = {"free": 1.0, "low": 0.8, "medium": 0.5, "high": 0.2}
 
         def composite_score(tool: ToolCapability) -> float:
-            reliability = tool.reliability_score * 0.4
+            relevance = tool.matches_query(query) if query else 1.0
+            relevance_score = relevance * 0.5
+
+            reliability = tool.reliability_score * 0.2
 
             # Normalize latency: 0-100ms → 1.0, 5000ms+ → 0.0
             latency_norm = max(0.0, 1.0 - tool.estimated_latency_ms / 5000)
-            latency = latency_norm * 0.2
+            latency = latency_norm * 0.1
 
-            cost = cost_scores.get(tool.cost_tier, 0.5) * 0.2
+            cost = cost_scores.get(tool.cost_tier, 0.5) * 0.1
 
             # Recency bonus: recently used tools get a small boost
             recency = 0.0
@@ -326,11 +332,11 @@ class ToolRegistry:
                 age_seconds = (
                     datetime.now(timezone.utc) - tool.last_used_at
                 ).total_seconds()
-                recency = max(0.0, 1.0 - age_seconds / 86400) * 0.2  # 24h decay
+                recency = max(0.0, 1.0 - age_seconds / 86400) * 0.1  # 24h decay
             else:
-                recency = 0.1  # Small default for unused tools
+                recency = 0.05  # Small default for unused tools
 
-            return reliability + latency + cost + recency
+            return relevance_score + reliability + latency + cost + recency
 
         return sorted(candidates, key=composite_score, reverse=True)
 

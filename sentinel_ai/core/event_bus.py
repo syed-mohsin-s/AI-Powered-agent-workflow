@@ -58,6 +58,14 @@ class EventType(str, Enum):
     # Metrics
     METRICS_SNAPSHOT = "metrics.snapshot"
 
+    # Guardrail events
+    GUARDRAIL_PASSED = "guardrail.passed"
+    GUARDRAIL_BLOCKED = "guardrail.blocked"
+
+    # Gateway events
+    REQUEST_AUTHENTICATED = "gateway.authenticated"
+    REQUEST_RATE_LIMITED = "gateway.rate_limited"
+
 
 @dataclass
 class Event:

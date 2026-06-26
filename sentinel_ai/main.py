@@ -31,6 +31,7 @@ async def lifespan(app: FastAPI):
     # ---------- Initialize Agents ----------
     from sentinel_ai.agents.decision import DecisionAgent
     from sentinel_ai.agents.execution import ExecutionAgent
+    from sentinel_ai.agents.guardrail import GuardrailAgent
     from sentinel_ai.agents.intake import IntakeAgent
     from sentinel_ai.agents.monitoring import MonitoringAgent
     from sentinel_ai.agents.orchestrator import OrchestratorAgent
@@ -52,6 +53,7 @@ async def lifespan(app: FastAPI):
         "monitoring": MonitoringAgent(),
         "recovery": RecoveryAgent(),
         "reliability_guard": ReliabilityGuardAgent(),
+        "guardrail": GuardrailAgent(),
         "planner": PlannerAgent(),
     }
 
@@ -121,6 +123,13 @@ async def lifespan(app: FastAPI):
     supervisor: SupervisorAgent = agents["supervisor"]
     await supervisor.start_monitoring()
 
+    # ---------- Initialize Vector Store ----------
+    from sentinel_ai.core.vector_store import get_vector_store
+
+    vector_store = get_vector_store()
+    vector_store.initialise()
+    vs_stats = vector_store.get_stats()
+
     registry_summary = tool_registry.get_registry_summary()
     logger.info("✅ Sentinel-AI Ready — All agents initialized")
     logger.info(f"   Agents: {', '.join(agents.keys())}")
@@ -130,6 +139,7 @@ async def lifespan(app: FastAPI):
     logger.info(
         f"   Tool Registry: {registry_summary['total_tools']} tools registered ({registry_summary['available_tools']} available)"
     )
+    logger.info(f"   Vector Store: {vs_stats['backend']} ({sum(vs_stats['collections'].values())} entries)")
     logger.info("   Dashboard: http://localhost:8000/dashboard")
     logger.info("   API Docs:  http://localhost:8000/docs")
 
@@ -164,13 +174,21 @@ app.add_middleware(
 
 from sentinel_ai.api.agents import router as agents_router  # noqa: E402
 from sentinel_ai.api.audit import router as audit_router  # noqa: E402
+from sentinel_ai.api.auth import router as auth_router  # noqa: E402
 from sentinel_ai.api.websocket import router as ws_router  # noqa: E402
 from sentinel_ai.api.workflows import router as workflows_router  # noqa: E402
 
+app.include_router(auth_router)
 app.include_router(workflows_router)
 app.include_router(agents_router)
 app.include_router(audit_router)
 app.include_router(ws_router)
+
+# ---------- Gateway Middleware ----------
+from sentinel_ai.api.gateway import JWTGatewayMiddleware, RateLimitMiddleware  # noqa: E402
+
+app.add_middleware(JWTGatewayMiddleware)
+app.add_middleware(RateLimitMiddleware)
 
 # ---------- Serve Dashboard Static Files ----------
 dashboard_dir = Path(__file__).parent.parent / "dashboard"
@@ -199,6 +217,7 @@ async def root():
         "status": "operational",
         "description": "Enterprise-Grade Agentic AI Workflow Engine",
         "endpoints": {
+            "auth": "/api/auth/token",
             "dashboard": "/dashboard",
             "api_docs": "/docs",
             "workflows": "/api/workflows/",

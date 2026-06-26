@@ -12,11 +12,113 @@ import time
 from typing import Any
 
 from sentinel_ai.agents.base import BaseAgent
+from sentinel_ai.config import get_config
 from sentinel_ai.core.tool_registry import ToolCapability, get_tool_registry
+from sentinel_ai.core.vector_store import get_vector_store
+from sentinel_ai.models.audit import create_audit_record
 from sentinel_ai.models.workflow import TaskResult
 from sentinel_ai.utils.logger import get_logger
 
 logger = get_logger("agents.execution")
+
+
+# ---------------------------------------------------------------------------
+# Execution Sandbox
+# ---------------------------------------------------------------------------
+
+
+class ExecutionSandbox:
+    """Wraps a tool call with timeout, output-size limiting, error containment,
+    and audit trail recording.
+    """
+
+    def __init__(
+        self,
+        tool_name: str,
+        provider: str = "",
+        timeout_seconds: int = 30,
+        max_output_bytes: int = 1_000_000,
+    ):
+        self.tool_name = tool_name
+        self.provider = provider
+        self.timeout = timeout_seconds
+        self.max_output_bytes = max_output_bytes
+        self._start: float = 0.0
+        self._duration_ms: float = 0.0
+
+    async def run(self, execute_fn, context: dict) -> dict | TaskResult:
+        """Execute *execute_fn(context)* inside the sandbox."""
+        self._start = time.time()
+        try:
+            result = await asyncio.wait_for(
+                execute_fn(context),
+                timeout=self.timeout,
+            )
+            self._duration_ms = (time.time() - self._start) * 1000
+
+            # Output size guard
+            result = self._clamp_output(result)
+
+            # Audit record for successful sandbox execution
+            self._record_audit(
+                decision="sandbox_execution_complete",
+                reasoning=f"Tool '{self.tool_name}' executed in {self._duration_ms:.0f}ms",
+                status="executed",
+            )
+            return result
+
+        except asyncio.TimeoutError:
+            self._duration_ms = (time.time() - self._start) * 1000
+            self._record_audit(
+                decision="sandbox_timeout",
+                reasoning=f"Tool '{self.tool_name}' exceeded {self.timeout}s timeout",
+                status="failed",
+            )
+            raise
+
+        except Exception as exc:
+            self._duration_ms = (time.time() - self._start) * 1000
+            self._record_audit(
+                decision="sandbox_error",
+                reasoning=f"Tool '{self.tool_name}' error: {exc}",
+                status="failed",
+            )
+            raise
+
+    @property
+    def duration_ms(self) -> float:
+        return self._duration_ms
+
+    # -- helpers --
+
+    def _clamp_output(self, result: Any) -> Any:
+        """Truncate output if it exceeds the configured size limit."""
+        if isinstance(result, (dict, list)):
+            serialised = json.dumps(result, default=str)
+            if len(serialised) > self.max_output_bytes:
+                logger.warning(
+                    f"Sandbox: output for '{self.tool_name}' truncated "
+                    f"({len(serialised)} > {self.max_output_bytes} bytes)"
+                )
+                return {"_truncated": True, "_original_size": len(serialised),
+                        "data": json.loads(serialised[: self.max_output_bytes])}
+        return result
+
+    def _record_audit(self, decision: str, reasoning: str, status: str) -> None:
+        try:
+            create_audit_record(
+                agent="execution_sandbox",
+                trigger_event="sandbox_execution",
+                context=f"tool={self.tool_name}, provider={self.provider}",
+                decision=decision,
+                reasoning=reasoning,
+                confidence=0.95 if status == "executed" else 0.1,
+                action_taken=f"Sandboxed execution of {self.tool_name}",
+                status=status,
+                why=f"Tool execution via sandbox (timeout={self.timeout}s)",
+            )
+        except Exception:
+            pass  # audit failure must not break execution
 
 
 class ExecutionAgent(BaseAgent):
@@ -43,6 +145,7 @@ class ExecutionAgent(BaseAgent):
         )
         self._integrations: dict[str, Any] = {}
         self._tool_registry = get_tool_registry()
+        self._vector_store = get_vector_store()
 
     def register_integration(self, name: str, adapter: Any) -> None:
         """Register an integration adapter."""
@@ -113,6 +216,23 @@ class ExecutionAgent(BaseAgent):
             }
         )
 
+        # RAG: recall past tool execution results
+        rag_context = ""
+        try:
+            past_results = self._vector_store.recall_for_execution(
+                action or task_name, top_k=3
+            )
+            if past_results:
+                parts = []
+                for r in past_results:
+                    parts.append(f"- {r['text']} (relevance: {r.get('score', 0):.0%})")
+                rag_context = "Past tool executions:\n" + "\n".join(parts)
+                reasoning_trace.append(
+                    {"step": "rag_recall", "results": len(past_results)}
+                )
+        except Exception:
+            pass  # non-fatal
+
         selected_tool = None
         tool_execute_fn = None
         validated_args = data
@@ -159,7 +279,7 @@ class ExecutionAgent(BaseAgent):
                         )
                     else:
                         # LLM picked an unknown tool — fall back to best ranked
-                        ranked = self._tool_registry.rank_tools(candidates)
+                        ranked = self._tool_registry.rank_tools(candidates, query=action)
                         selected_tool = ranked[0]
                         tool_execute_fn = self._tool_registry.get_execute_fn(
                             selected_tool.name
@@ -176,7 +296,7 @@ class ExecutionAgent(BaseAgent):
                     logger.warning(
                         f"LLM tool selection failed, falling back to ranking: {e}"
                     )
-                    ranked = self._tool_registry.rank_tools(candidates)
+                    ranked = self._tool_registry.rank_tools(candidates, query=action)
                     selected_tool = ranked[0]
                     tool_execute_fn = self._tool_registry.get_execute_fn(
                         selected_tool.name
@@ -191,7 +311,7 @@ class ExecutionAgent(BaseAgent):
                     )
             else:
                 # Multiple candidates but no LLM — rank and pick best
-                ranked = self._tool_registry.rank_tools(candidates)
+                ranked = self._tool_registry.rank_tools(candidates, query=action)
                 selected_tool = ranked[0]
                 tool_execute_fn = self._tool_registry.get_execute_fn(selected_tool.name)
                 reasoning_trace.append(
@@ -267,6 +387,9 @@ class ExecutionAgent(BaseAgent):
     ) -> TaskResult:
         """Execute an action via a tool from the registry."""
         start = time.time()
+        config = get_config()
+        sandbox_enabled = config.agents.sandbox_enabled
+
         try:
             # Build context for the tool executor
             tool_context = {
@@ -275,8 +398,19 @@ class ExecutionAgent(BaseAgent):
                 "input_data": data,
                 "shared_context": context.get("shared_context", {}),
             }
-            result = await execute_fn(tool_context)
-            latency_ms = (time.time() - start) * 1000
+
+            if sandbox_enabled:
+                sandbox = ExecutionSandbox(
+                    tool_name=tool.name,
+                    provider=tool.provider,
+                    timeout_seconds=config.agents.sandbox_tool_timeout_seconds,
+                    max_output_bytes=config.agents.sandbox_max_output_size_bytes,
+                )
+                result = await sandbox.run(execute_fn, tool_context)
+                latency_ms = sandbox.duration_ms
+            else:
+                result = await execute_fn(tool_context)
+                latency_ms = (time.time() - start) * 1000
 
             # Update tool reliability
             success = True
@@ -324,6 +458,26 @@ class ExecutionAgent(BaseAgent):
                 },
                 confidence=0.9,
                 reasoning=f"Successfully executed via tool '{tool.name}' (provider: {tool.provider})",
+                tool_used=tool.name,
+                tools_considered=tools_considered,
+                reasoning_trace=reasoning_trace,
+            )
+
+        except asyncio.TimeoutError:
+            latency_ms = (time.time() - start) * 1000
+            self._tool_registry.update_reliability(tool.name, False, latency_ms)
+            reasoning_trace.append(
+                {
+                    "step": "sandbox_timeout",
+                    "tool": tool.name,
+                    "timeout": config.agents.sandbox_tool_timeout_seconds if sandbox_enabled else "n/a",
+                }
+            )
+            return TaskResult(
+                success=False,
+                error_message=f"Tool '{tool.name}' timed out in sandbox",
+                confidence=0.0,
+                reasoning=f"Sandbox timeout for '{tool.name}'",
                 tool_used=tool.name,
                 tools_considered=tools_considered,
                 reasoning_trace=reasoning_trace,

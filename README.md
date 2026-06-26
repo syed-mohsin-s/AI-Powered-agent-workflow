@@ -13,8 +13,12 @@ A production-ready, multi-agent, event-driven, self-healing workflow orchestrati
   - **LLM-Driven Tool Selection**: Execution agents autonomously reason about and select the best tools based on schema and context.
   - **Dynamic Planner Agent**: Generates task DAGs from natural language goals at runtime.
   - **Reflection & Semantic Recovery**: Intelligent failure analysis and tool switching instead of blind retries.
-  - **Agent Memory**: Stores and recalls successful tool sequences and recovery strategies.
+  - **Agent Memory (Vector Store)**: Persistent ChromaDB-backed semantic search to recall successful tool sequences and recovery strategies.
   - **Dynamic Skill Loading**: Context-specific system prompts and tool preferences loaded on demand.
+- **🛡️ Security-Hardened Pipeline**:
+  - **JWT API Gateway**: Secure, stateless authentication with rate limiting and identity injection.
+  - **Guardrail Agent**: Pre-execution security checks, injection detection, and strict policy enforcement.
+  - **Execution Sandbox**: Strict operational boundaries including configurable timeouts and output payload constraints.
 - **📊 DAG-Based Execution** — Parallel task execution with topological sorting, cycle detection, and dependency resolution
 - **🔐 Cryptographic Audit Trail** — SHA-256 hash chain providing tamper-evident Agent Decision Records (AgDR)
 - **⚡ Event-Driven** — Async pub/sub event bus with wildcard subscriptions and WebSocket real-time updates
@@ -152,21 +156,29 @@ python scripts/run_strict_p2p_live.py
 ```mermaid
 graph TD
     subgraph "Sentinel-AI Target Architecture"
-        U2[User Goal] --> PL[Planner Agent]
-        PL --> TG[Dynamic Task Graph]
-        TG --> EA[Execution Agent]
+        Client[Client Request + JWT] --> GW[API Gateway]
+        GW -->|Auth + Rate Limit| PL[Planner Agent]
+        PL -->|Goal -> Task DAG| TG[Dynamic Task Graph]
+        
+        TG --> GR[Guardrail Agent]
+        GR -->|Policy + Injection Check| EA[Execution Agent]
         
         subgraph "Intelligent Execution"
             EA --> TR[Tool Registry]
             TR --> RS["LLM Reason + Rank"]
             RS --> CT[Choose Tool]
-            CT --> EX[Execute Integration]
+            CT --> SB[Execution Sandbox]
+            SB --> EX[Execute Integration]
         end
         
         EX --> RF[Reflection Engine]
-        RF -->|success| MM[Memory Store]
+        RF -->|success| MM[Vector Store Memory]
         RF -->|failure| SR[Semantic Recovery]
         SR --> TR
+        
+        GR -.-> AD[Cryptographic Audit Trail]
+        EX -.-> AD
+        MM -.->|RAG| PL
     end
 ```
 

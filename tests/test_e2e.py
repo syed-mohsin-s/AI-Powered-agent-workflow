@@ -59,7 +59,7 @@ async def test_local_e2e_goal(app_lifespan):
 
 
 @pytest.mark.asyncio
-async def test_http_e2e_p2p():
+async def test_http_e2e_p2p(app_lifespan):
     """Run strict end-to-end P2P workflow via HTTP API."""
     async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
         # Check health
@@ -142,7 +142,7 @@ async def test_http_e2e_p2p():
 
 
 @pytest.mark.asyncio
-async def test_http_e2e_goal():
+async def test_http_e2e_goal(app_lifespan):
     """Run goal-driven workflow via HTTP API."""
     async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
         # Check health

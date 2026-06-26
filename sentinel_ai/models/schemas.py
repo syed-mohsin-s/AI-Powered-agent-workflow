@@ -9,6 +9,25 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
+# Auth Schemas
+# ---------------------------------------------------------------------------
+
+
+class TokenRequest(BaseModel):
+    """Request body for JWT token generation."""
+
+    username: str = Field(..., description="Username")
+    password: str = Field(..., description="Password")
+
+
+class TokenResponse(BaseModel):
+    """Response containing the generated JWT access token."""
+
+    access_token: str
+    token_type: str = "bearer"
+    expires_in_minutes: int
+
+# ---------------------------------------------------------------------------
 # Workflow Schemas
 # ---------------------------------------------------------------------------
 

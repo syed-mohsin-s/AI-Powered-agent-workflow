@@ -64,6 +64,10 @@ class AgentTimingConfig(BaseModel):
     stall_detection_threshold_seconds: int = 300
     max_recovery_attempts: int = 3
     escalation_confidence_threshold: float = 0.3
+    # Sandbox settings
+    sandbox_enabled: bool = True
+    sandbox_max_output_size_bytes: int = 1_000_000
+    sandbox_tool_timeout_seconds: int = 30
 
 
 class AtlassianMCPConfig(BaseModel):
@@ -83,6 +87,38 @@ class IntegrationsConfig(BaseModel):
     erp: MockIntegrationConfig = MockIntegrationConfig(simulate_delay_ms=500)
     email: MockIntegrationConfig = MockIntegrationConfig(simulate_delay_ms=200)
     servicenow: MockIntegrationConfig = MockIntegrationConfig(simulate_delay_ms=400)
+
+
+class JWTConfig(BaseModel):
+    secret_key: str = "sentinel-ai-default-secret-change-me"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+    default_username: str = "admin"
+    # bcrypt hash of 'sentinel' — change in production
+    default_password_hash: str = ""
+
+
+class GatewayConfig(BaseModel):
+    rate_limit_per_minute: int = 100
+    rate_limit_burst: int = 20
+    exempt_paths: list[str] = Field(
+        default_factory=lambda: [
+            "/api/auth/token",
+            "/docs",
+            "/openapi.json",
+            "/health",
+            "/dashboard",
+            "/",
+        ]
+    )
+
+
+class GuardrailConfig(BaseModel):
+    injection_threshold: float = 0.6
+    max_input_length: int = 50000
+    pii_detection_enabled: bool = True
+    blocked_keywords: list[str] = Field(default_factory=list)
+    llm_assisted_check: bool = False
 
 
 class AuditConfig(BaseModel):
@@ -119,6 +155,9 @@ class SentinelConfig(BaseModel):
     llm: LLMConfig = LLMConfig()
     agents: AgentTimingConfig = AgentTimingConfig()
     integrations: IntegrationsConfig = IntegrationsConfig()
+    jwt: JWTConfig = JWTConfig()
+    gateway: GatewayConfig = GatewayConfig()
+    guardrail: GuardrailConfig = GuardrailConfig()
     audit: AuditConfig = AuditConfig()
     metrics: MetricsConfig = MetricsConfig()
     logging: LoggingConfig = LoggingConfig()

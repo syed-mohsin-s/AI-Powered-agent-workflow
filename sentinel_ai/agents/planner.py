@@ -12,6 +12,7 @@ from typing import Optional
 
 from sentinel_ai.agents.base import BaseAgent
 from sentinel_ai.core.tool_registry import get_tool_registry
+from sentinel_ai.core.vector_store import get_vector_store
 from sentinel_ai.models.workflow import TaskDefinition, TaskResult
 from sentinel_ai.utils.logger import get_logger
 
@@ -150,11 +151,26 @@ You may modify, extend, or deviate from this template based on the goal."""
         if constraints:
             constraint_text = f"\nConstraints: {json.dumps(constraints, indent=2)}"
 
+        # RAG: retrieve relevant past workflow patterns
+        rag_context = ""
+        try:
+            vs = get_vector_store()
+            rag_context = vs.get_rag_context(
+                query=goal or workflow_type,
+                collections=["workflow_patterns", "tool_sequences"],
+                top_k=3,
+            )
+            if rag_context:
+                rag_context = f"\n{rag_context}\n"
+        except Exception as e:
+            logger.debug(f"Vector store recall failed (non-fatal): {e}")
+
         prompt = f"""You are a workflow planner. Generate a task execution plan for the following objective.
 
 Goal: {goal or f'Execute a {workflow_type} workflow'}
 {constraint_text}
 {template_hint}
+{rag_context}
 
 Available tools in the system:
 {tools_summary}
@@ -317,6 +333,7 @@ Return ONLY valid JSON."""
             "monitoring",
             "recovery",
             "reliability_guard",
+            "guardrail",
             "planner",
         }
         for task in tasks:

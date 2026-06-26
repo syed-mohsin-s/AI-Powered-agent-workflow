@@ -116,6 +116,31 @@ integrations:
     type: "mock"
     simulate_delay_ms: 400
 
+jwt:
+  secret_key: "${JWT_SECRET_KEY}"
+  algorithm: "HS256"
+  access_token_expire_minutes: 60
+  default_username: "admin"
+  default_password_hash: ""  # Set via env or leave blank for dev mode
+
+gateway:
+  rate_limit_per_minute: 100
+  rate_limit_burst: 20
+  exempt_paths:
+    - "/api/auth/token"
+    - "/docs"
+    - "/openapi.json"
+    - "/health"
+    - "/dashboard"
+    - "/"
+
+guardrail:
+  injection_threshold: 0.6
+  max_input_length: 50000
+  pii_detection_enabled: true
+  blocked_keywords: []
+  llm_assisted_check: false
+
 audit:
   hash_algorithm: "sha256"
   chain_verification_interval_seconds: 300
